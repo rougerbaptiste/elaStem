@@ -7,34 +7,38 @@ import matplotlib.pyplot as plt
 #================
 # Simulation parameters
 t = 0.0
-tmax = 0.1
+tmax = 10.0
 dt = 0.01
 tstepsNb = tmax/dt
 YM = 1.0
-
+fiberNb = 4
+prodRate = 0.8
+degRate = 2.0
+hormC = [0.5] * fiberNb
+print(hormC)
 
 #================
 # Initial parameters
-l0i = np.zeros(shape=(int(tstepsNb+2),4))
-l0i[0,:] =  [10,11,12,13]
-yi = [-1.00, -0.33, 0.33, 1.00]
+l0i = np.zeros(shape=(int(tstepsNb+1),fiberNb))
+l0i[0,:] =  np.linspace(10,10+fiberNb, fiberNb)
+yi = np.linspace(-1, 1, fiberNb) # [-1.00, -0.33, 0.33, 1.00]
+
 
 
 #================
 # Output Variables
-l = np.zeros(shape=(int(tstepsNb+2)))
+l = np.zeros(shape=(int(tstepsNb+1)))
 l[0] = np.mean(l0i[0,:])
 # l = np.zeros(shape=(int(tstepsNb+1)))
-k = np.zeros(shape=(int(tstepsNb+2)))
+k = np.zeros(shape=(int(tstepsNb+1)))
 k[0] = 1
 
 
 def equations(params):
     lPrev, kPrev = params
-    lNext = sum( ( lPrev * ( 1 + k * yi[i] ) - Fl0i[i] ) * (lPrev * yi[i]) for i in range(0, len(yi)) )
-    kNext = sum( ( lPrev * ( 1 + k * yi[i] ) - Fl0i[i] ) * ( 1 + kPrev * yi[i] ) for i in range(0, len(yi)) )
-    print("shape", kNext.shape)
-    return lNext[tIndex-1], kNext[tIndex-1]
+    lNext = sum( ( lPrev * ( 1 + kPrev * yi[i] ) - Fl0i[i] ) * (lPrev * yi[i]) for i in range(0, len(yi)) )
+    kNext = sum( ( lPrev * ( 1 + kPrev * yi[i] ) - Fl0i[i] ) * ( 1 + kPrev * yi[i] ) for i in range(0, len(yi)) )
+    return lNext, kNext
 
 def stress(l, l0i, YM):
     stress = YM * (l - l0i)
@@ -46,8 +50,11 @@ def growth(stress, l0i, dt):
     func = 1/(1+np.exp(stressMinus))
     Grow = []
     for i in range(0, len(stress)):
-        # print(func[i], l0i[i])
-        Grow.append(l0i[i] + (func[i] * l0i[i])*dt)
+        hormC[i] = hormC[i] * (1 - dt/degRate) + max(dt * func[i], 0)
+        # hormC[i] = hormC[i] * (1 - dt/degRate) + max(dt * prodRate * stress[i], 0)
+        Grow.append(l0i[i]* (1 + max(dt * hormC[i],0)))
+    print(hormC)
+    print(Grow)
     return Grow
 
 
@@ -55,6 +62,7 @@ tIndex = 0
 tVec = [t]
 while t < tmax:
     t += dt
+    if(t > tmax): break
     print("t = ", t)
     tVec.append(t)
     tIndex += 1
@@ -62,7 +70,6 @@ while t < tmax:
     params = [l[tIndex-1], k[tIndex-1]] #  [li[tIndex-1,:], l0i[tIndex-1,:], ki[tIndex-1,:], yi]
     # print(yi)
     Fl0i = l0i[tIndex-1,:]
-    print(Fl0i)
     # globParams = np.concatenate((l0i[tIndex-1],yi), axis=0)
     # print(globParams)
     # print(params)
@@ -72,15 +79,23 @@ while t < tmax:
     # k[tIndex, :] = sol[8:12]
     #
     st = stress(l[tIndex-1], l0i[tIndex-1,:], YM)
-    print("stress", st)
     #
     gr = growth(st, l0i[tIndex-1], dt)
-    print("growth", gr)
+    # print(gr)
     #
-    l0i[tIndex] = gr
+    l0i[tIndex, :] = gr
 
-# print(li)
-print(l)
+# print(l)
+#
+# print(k)
+# print(len(tVec), k.shape)
 plt.figure()
-plt.plot(tVec, l[:])
+plt.plot(tVec, k[:])
+plt.xlabel('time')
+plt.ylabel('curvature')
+plt.figure()
+plt.plot(tVec, l)
+plt.xlabel('time')
+plt.ylabel('length')
+# plt.axis((0,2,10,14))
 plt.show()
