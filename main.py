@@ -4,91 +4,129 @@ from scipy.optimize import fsolve
 import math
 import matplotlib.pyplot as plt
 
+#
+# (S) means the varaible is a scalar
+# (V) means the varaible is a vector
+# (M)(x,y) means the varaible is a matrix of size x by y
+#
+
 #================
 # Simulation parameters
-t = 0.0
-tmax = 10.0
-dt = 0.01
-tstepsNb = tmax/dt
-YM = 1.0
-fiberNb = 4
-prodRate = 0.8
-degRate = 2.0
-hormC = [0.5] * fiberNb
-print(hormC)
+t = float(0.0)                     # (S) Starting time of the simulation
+tmax = float(50.0)                 # (S) Ending time of the simulation
+dt = float(0.01)                   # (S) Time step
+tstepsNb = tmax/dt          # (S) Number of steps of the simulation
+YM = 5.0                    # (S) Young Modulus : elasticity coefficient of the stem
+fiberNb = 4                 # (S) Number of fibers/spring to consider
+prodRate = 0.8              # (S) Production rate of the hormone of growth
+degRate = 2.0               # (S) Degradation rate of the hormone of growth
+hormC = [0.5] * fiberNb     # (V) Concentration in hormone in the fibers
 
 #================
 # Initial parameters
-l0i = np.zeros(shape=(int(tstepsNb+1),fiberNb))
-l0i[0,:] =  np.linspace(10,10+fiberNb, fiberNb)
-yi = np.linspace(-1, 1, fiberNb) # [-1.00, -0.33, 0.33, 1.00]
-
+l0i = np.zeros(shape=(int(tstepsNb+1),fiberNb)) # (M)(simulation length, fiber number) "Original" length of the fibers
+l0i[0,:] =  np.linspace(10,10+fiberNb, fiberNb) # initialisation of the above
+yi = np.linspace(-1, 1, fiberNb)                # (V) position of the fibers in the curve
 
 
 #================
 # Output Variables
-l = np.zeros(shape=(int(tstepsNb+1)))
-l[0] = np.mean(l0i[0,:])
-# l = np.zeros(shape=(int(tstepsNb+1)))
-k = np.zeros(shape=(int(tstepsNb+1)))
-k[0] = 1
+l = np.zeros(shape=(int(tstepsNb+1)))           # (V) Actual length of the stem
+l[0] = np.mean(l0i[0,:])                        # Initialisation of the above with mean value of l0i
+k = np.zeros(shape=(int(tstepsNb+1)))           # (V) Curvature of the stem
+k[0] = 1                                        # Initialisation of the above
 
 
 def equations(params):
+    """
+    This function contains the equations to solve to get the new length and curvature of the stem.
+    It takes params as an input with inside :
+        - (S) lPrev : previous length of the stem
+        - (S) kPrev : previous curvature of the stem
+
+    It returns :
+        - (S) lNext : the new length of the stem
+        - (S) kNext : the new curvature of the stem
+
+    It also needs global variables such as :
+        - (V) yi   : the spatial position of each fiber
+        - (V) Fl0i : the "original" length of each fiber
+    """
     lPrev, kPrev = params
-    lNext = sum( ( lPrev * ( 1 + kPrev * yi[i] ) - Fl0i[i] ) * (lPrev * yi[i]) for i in range(0, len(yi)) )
-    kNext = sum( ( lPrev * ( 1 + kPrev * yi[i] ) - Fl0i[i] ) * ( 1 + kPrev * yi[i] ) for i in range(0, len(yi)) )
+    lNext = sum( ( lPrev * ( 1 + kPrev * yi[i] ) - Fl0i[i] ) * (lPrev * yi[i]) for i in range(0, len(yi)) )         # This computes the partial derivative against l
+    kNext = sum( ( lPrev * ( 1 + kPrev * yi[i] ) - Fl0i[i] ) * ( 1 + kPrev * yi[i] ) for i in range(0, len(yi)) )   # This computes the partial derivative against kappa
     return lNext, kNext
 
 def stress(l, l0i, YM):
+    """
+    This function computes the stress of each fiber.
+    It takes as input :
+        - (S) l   : the actual length of the stem at this time step
+        - (V) l0i : the current "original" length of each fiber
+        - (S) YM  : the Young Modulus that represents the elacticity of the fiber
+    It returns :
+        - (V) stress : the stress of each fiber of the stem
+    """
     stress = YM * (l - l0i)
     return stress
 
-def growth(stress, l0i, dt):
-    stressMinus = [float(-1*s) for s in stress]
-    # print(stress)
-    func = 1/(1+np.exp(stressMinus))
-    Grow = []
-    for i in range(0, len(stress)):
-        hormC[i] = hormC[i] * (1 - dt/degRate) + max(dt * func[i], 0)
-        # hormC[i] = hormC[i] * (1 - dt/degRate) + max(dt * prodRate * stress[i], 0)
-        Grow.append(l0i[i]* (1 + max(dt * hormC[i],0)))
-    print(hormC)
-    print(Grow)
+def growth(stress, l0i, dt, function):
+    """
+    This function computes the new "original" length of each fiber
+    It takes as input :
+        - (V) stress : the stress of each fiber of the stem
+        - (V) l0i    : the previous "original" length of each fiber
+        - (S) dt     : the time step
+        - (S) function : a number the specifies the function to use for the growth
+            - 0 : classical hormone production + degradation
+            - 1 : hormone production following a sigmoide function + degradation
+
+    It returns :
+        - (V) l0i : the new "original" length of each fiber
+
+    It also needs global variables such as :
+        - (S) degRate  : the degradation rate of the hormone
+        - (S) predRate : the production rate of the hormone
+    """
+    Grow = []                                                                           # (V) Initialisation of the new "original" length of the fibers
+    if (function == 0):                                                                 # the user chose function 0 (cf above)
+        for i in range(0, len(stress)):                                                 # we compute the growth of each fiber
+            hormC[i] = hormC[i] * (1 - dt/degRate) + max(dt * prodRate * stress[i], 0)
+            Grow.append(l0i[i]* (1 + max(dt * hormC[i],0)))
+
+    if (function == 1):                                                                 # the user chose function 1 (cf above)
+        stressMinus = [float(-1*s) for s in stress]                                     # computes each stress * -1
+        func = 1/(1+np.exp(stressMinus))                                                # the sigmoide function of the stress
+        for i in range(0, len(stress)):                                                 # we compute the growth for each fiber
+            hormC[i] = hormC[i] * (1 - dt/degRate) + max(dt * func[i], 0)
+            Grow.append(l0i[i]* (1 + max(dt * hormC[i],0)))
     return Grow
 
 
-tIndex = 0
-tVec = [t]
-while t < tmax:
+tIndex = 0                                              # (S) the index of the current time step
+tVec = [t]                                              # (V) initialisation of the vector containing the time of each time step
+while t <= tmax:
     t += dt
-    if(t > tmax): break
-    print("t = ", t)
+    if(t > (tmax + dt/100)): break                      # this function is here to avoid having an extra time step
+
+    print("t = " +  str(t))                             # we update the time step at which we are
     tVec.append(t)
     tIndex += 1
 
-    params = [l[tIndex-1], k[tIndex-1]] #  [li[tIndex-1,:], l0i[tIndex-1,:], ki[tIndex-1,:], yi]
-    # print(yi)
-    Fl0i = l0i[tIndex-1,:]
-    # globParams = np.concatenate((l0i[tIndex-1],yi), axis=0)
-    # print(globParams)
-    # print(params)
-    l[tIndex], k[tIndex] = fsolve(equations, params )
-    # print(sol)
-    # l[tIndex, :] = sol[0:4]
-    # k[tIndex, :] = sol[8:12]
-    #
-    st = stress(l[tIndex-1], l0i[tIndex-1,:], YM)
-    #
-    gr = growth(st, l0i[tIndex-1], dt)
-    # print(gr)
-    #
-    l0i[tIndex, :] = gr
+    params = [l[tIndex-1], k[tIndex-1]]                 # (V) we put the previous l and k in a vector for the function
+    Fl0i = l0i[tIndex-1,:]                              # (V) we put the previous "original" length of the fibers in a vector to sned it to the function
+    l[tIndex], k[tIndex] = fsolve(equations, params )   # (V), (V) we get the newly computed values of l and k and store it in the corresponding vectors
 
-# print(l)
-#
-# print(k)
-# print(len(tVec), k.shape)
+    fibersStress = stress(l[tIndex-1], l0i[tIndex-1,:], YM) # (V) we compute the stress of each fibers
+
+    l0i[tIndex, :] = growth(fibersStress, l0i[tIndex-1], dt, 1) # (M) we compute the new "original" lengths of each fiber and store it in the corresponding matrix
+
+
+"""
+After all this we can plot the evolution of l and k through time
+"""
+print("Final l = " + str(l[-1]))
+print("Final k = " + str(k[-1]))
 plt.figure()
 plt.plot(tVec, k[:])
 plt.xlabel('time')
