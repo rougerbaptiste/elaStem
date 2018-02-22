@@ -7,50 +7,37 @@ import matplotlib.pyplot as plt
 #================
 # Simulation parameters
 t = 0.0
-tmax = 1
+tmax = 0.1
 dt = 0.01
 tstepsNb = tmax/dt
-YM = 1
+YM = 1.0
 
 
 #================
 # Initial parameters
-l0i = np.zeros(shape=(int(tstepsNb+1),4))
+l0i = np.zeros(shape=(int(tstepsNb+2),4))
 l0i[0,:] =  [10,11,12,13]
 yi = [-1.00, -0.33, 0.33, 1.00]
 
 
 #================
 # Output Variables
-li = np.zeros(shape=(int(tstepsNb+1),4))
-li[0, :] = [np.mean(l0i[0,:])]*len(l0i[0,:])
+l = np.zeros(shape=(int(tstepsNb+2)))
+l[0] = np.mean(l0i[0,:])
 # l = np.zeros(shape=(int(tstepsNb+1)))
-ki = np.zeros(shape=(int(tstepsNb+1),4))
-# k = np.zeros(shape=(int(tstepsNb+1)))
+k = np.zeros(shape=(int(tstepsNb+2)))
+k[0] = 1
 
 
 def equations(params):
-    liPrev = params[0:4]
-    # print("liPrev", liPrev)
-    l0i = params[4:8]
-    # print("l0i", l0i)
-    kiPrev = params[8:12]
-    # print("ki", kiPrev)
-    yi = params[12:16]
-    # print("yi", yi)
-    # , l0i, kiPrev, yi = params
-    liNext = sum( ( liPrev[i] * ( 1 + ki[i] * yi[i] ) - l0i[i] ) * (liPrev[i] * yi[i]) for i in range(0, len(yi)) )
-    # print(len(liNext))
-    kiNext = sum( ( liPrev[i] * ( 1 + ki[i] * yi[i] ) - l0i[i] ) * ( 1 + ki[i] * yi[i] ) for i in range(0, len(yi)) )
-    # print(len(kiNext))
-    sol = np.concatenate((liNext, l0i), axis = 0)
-    sol = np.concatenate((sol , kiPrev), axis = 0)
-    sol = np.concatenate((sol , yi), axis = 0)
-    # print(sol)
-    return sol
+    lPrev, kPrev = params
+    lNext = sum( ( lPrev * ( 1 + k * yi[i] ) - Fl0i[i] ) * (lPrev * yi[i]) for i in range(0, len(yi)) )
+    kNext = sum( ( lPrev * ( 1 + k * yi[i] ) - Fl0i[i] ) * ( 1 + kPrev * yi[i] ) for i in range(0, len(yi)) )
+    print("shape", kNext.shape)
+    return lNext[tIndex-1], kNext[tIndex-1]
 
-def stress(li, l0i, YM):
-    stress = YM * (li - l0i)
+def stress(l, l0i, YM):
+    stress = YM * (l - l0i)
     return stress
 
 def growth(stress, l0i, dt):
@@ -68,26 +55,32 @@ tIndex = 0
 tVec = [t]
 while t < tmax:
     t += dt
+    print("t = ", t)
     tVec.append(t)
     tIndex += 1
 
-    params = [li[tIndex-1,:], l0i[tIndex-1,:], ki[tIndex-1,:], yi]
+    params = [l[tIndex-1], k[tIndex-1]] #  [li[tIndex-1,:], l0i[tIndex-1,:], ki[tIndex-1,:], yi]
+    # print(yi)
+    Fl0i = l0i[tIndex-1,:]
+    print(Fl0i)
+    # globParams = np.concatenate((l0i[tIndex-1],yi), axis=0)
+    # print(globParams)
     # print(params)
-    sol = fsolve(equations, params )
+    l[tIndex], k[tIndex] = fsolve(equations, params )
     # print(sol)
-    li[tIndex, :] = sol[0:4]
-    ki[tIndex, :] = sol[8:12]
-
-    st = stress(li[tIndex-1,:], l0i[tIndex-1,:], 1)
-    # print(st)
-
+    # l[tIndex, :] = sol[0:4]
+    # k[tIndex, :] = sol[8:12]
+    #
+    st = stress(l[tIndex-1], l0i[tIndex-1,:], YM)
+    print("stress", st)
+    #
     gr = growth(st, l0i[tIndex-1], dt)
-    # print(gr)
-
+    print("growth", gr)
+    #
     l0i[tIndex] = gr
 
 # print(li)
-print(li)
+print(l)
 plt.figure()
-plt.plot(tVec, ki[:,0])
+plt.plot(tVec, l[:])
 plt.show()
