@@ -18,9 +18,10 @@ dt = float(0.01)                   # (S) Time step
 tstepsNb = tmax/dt          # (S) Number of steps of the simulation
 YM = 5.0                    # (S) Young Modulus : elasticity coefficient of the stem
 fiberNb = 4                 # (S) Number of fibers/spring to consider
-prodRate = 0.8              # (S) Production rate of the hormone of growth
-degRate = 2.0               # (S) Degradation rate of the hormone of growth
+prodRate = 1.0              # (S) Production rate of the hormone of growth
+degRate = 5.0               # (S) Degradation rate of the hormone of growth
 hormC = [0.5] * fiberNb     # (V) Concentration in hormone in the fibers
+hormC2 = [0.5] * fiberNb     # (V) Concentration in hormone in the fibers
 
 #================
 # Initial parameters
@@ -100,6 +101,14 @@ def growth(stress, l0i, dt, function):
         for i in range(0, len(stress)):                                                 # we compute the growth for each fiber
             hormC[i] = hormC[i] * (1 - dt/degRate) + max(dt * func[i], 0)
             Grow.append(l0i[i]* (1 + max(dt * hormC[i],0)))
+
+    if (function == 2):
+        stressMinus = [float(-1*s) for s in stress]                                     # computes each stress * -1
+        func = 1/(1+np.exp(stressMinus))                                                # the sigmoide function of the stress
+        for i in range(0, len(stress)):
+            hormC[i] = hormC[i] * (1 - dt/degRate) + max(dt * func[i], 0)
+            hormC2[i] = hormC2[i] * (1 - dt/degRate) + max(dt * hormC[i], 0)
+            Grow.append(l0i[i]* (1 + max(dt * hormC2[i],0)))
     return Grow
 
 
