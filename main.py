@@ -13,13 +13,13 @@ import matplotlib.pyplot as plt
 #================
 # Simulation parameters
 t = float(0.0)                     # (S) Starting time of the simulation
-tmax = float(50.0)                 # (S) Ending time of the simulation
+tmax = float(100.0)                 # (S) Ending time of the simulation
 dt = float(0.01)                   # (S) Time step
 tstepsNb = tmax/dt          # (S) Number of steps of the simulation
 YM = 5.0                    # (S) Young Modulus : elasticity coefficient of the stem
 fiberNb = 4                 # (S) Number of fibers/spring to consider
 prodRate = 1.0              # (S) Production rate of the hormone of growth
-degRate = 5.0               # (S) Degradation rate of the hormone of growth
+degRate = 1.0               # (S) Degradation rate of the hormone of growth
 hormC = [0.5] * fiberNb     # (V) Concentration in hormone in the fibers
 hormC2 = [0.5] * fiberNb     # (V) Concentration in hormone in the fibers
 
@@ -128,7 +128,7 @@ while t <= tmax:
 
     fibersStress = stress(l[tIndex-1], l0i[tIndex-1,:], YM) # (V) we compute the stress of each fibers
 
-    l0i[tIndex, :] = growth(fibersStress, l0i[tIndex-1], dt, 1) # (M) we compute the new "original" lengths of each fiber and store it in the corresponding matrix
+    l0i[tIndex, :] = growth(fibersStress, l0i[tIndex-1], dt, 2) # (M) we compute the new "original" lengths of each fiber and store it in the corresponding matrix
 
 
 """
