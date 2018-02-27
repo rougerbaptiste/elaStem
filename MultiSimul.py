@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 
 # degRate = prodRate / ratio               # (S) Degradation rate of the hormone of growth
 
-ProdDegRatio = [3,1,0.5,0.1]
-FuncGrowth = [1,2]
+ProdDegRatio = [2,1,0.5,0.1]
+FuncGrowth = [2]
 
 outputMatrixL = []
 outputMatrixK = []
@@ -21,12 +21,12 @@ legend = []
 
 for func in FuncGrowth:
     for ratio in ProdDegRatio:
-        print("\n\n=============" + str(ratio) + "=============== \n")
+        print("\n============= Function : " + str(func) + " ===== Ratio : " +  str(ratio) + "=============== \n")
         #================
         # Simulation parameters
         t = float(0.0)                     # (S) Starting time of the simulation
         tmax = float(50.0)                 # (S) Ending time of the simulation
-        dt = float(0.01)                   # (S) Time step
+        dt = float(0.001)                   # (S) Time step
         tstepsNb = tmax/dt          # (S) Number of steps of the simulation
         YM = 5.0                    # (S) Young Modulus : elasticity coefficient of the stem
         fiberNb = 4                 # (S) Number of fibers/spring to consider
@@ -93,6 +93,7 @@ for func in FuncGrowth:
                 - (S) function : a number the specifies the function to use for the growth
                     - 0 : classical hormone production + degradation
                     - 1 : hormone production following a sigmoide function + degradation
+                    - 2 : 2 hormones : hormone 1 production following a sigmoide function + degradation, hormone 2 production depending on the concentration of hormone 1 + degradation
 
             It returns :
                 - (V) l0i : the new "original" length of each fiber
@@ -130,7 +131,7 @@ for func in FuncGrowth:
             t += dt
             if(t > (tmax + dt/100)): break                      # this function is here to avoid having an extra time step
 
-            print("t = " +  str(t))                             # we update the time step at which we are
+            # print("t = " +  str(t))                             # we update the time step at which we are
             tVec.append(t)
             tIndex += 1
 

@@ -81,6 +81,7 @@ def growth(stress, l0i, dt, function):
         - (S) function : a number the specifies the function to use for the growth
             - 0 : classical hormone production + degradation
             - 1 : hormone production following a sigmoide function + degradation
+            - 2 : 2 hormones : hormone 1 production following a sigmoide function + degradation, hormone 2 production depending on the concentration of hormone 1 + degradation
 
     It returns :
         - (V) l0i : the new "original" length of each fiber
